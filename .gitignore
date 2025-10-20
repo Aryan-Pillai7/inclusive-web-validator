@@ -1,0 +1,20 @@
+# Ignore unnecessary files 
+# Python
+__pycache__/
+*.pyc
+.env
+venv/
+
+# Node / React
+node_modules/
+build/
+
+# Reports & local data
+reports_output/
+playwright-report/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
