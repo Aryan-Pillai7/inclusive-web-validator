@@ -22,17 +22,23 @@ async def run_axe_on_page(page: Page, context: Dict = None) -> Dict[str, Any]:
     await page.add_script_tag(content=AXE_SCRIPT)
     # Optionally pass a context or options to axe.run
     # Use evaluate to run axe.run in the page context and get JSON back
-    options = {}  # can add rules or options
-    context_arg = context or {}
+    options = None  # can add rules or options
+    context_arg = context or None
     result = await page.evaluate(
-        """async (options, context) => {
-            try {
-                const res = await window.axe.run(context, options);
-                return res;
-            } catch (err) {
-                return { error: String(err) };
+    """async ({ options, context }) => {
+        try {
+            // Wait until axe is actually loaded
+            if (!window.axe) {
+                throw new Error("axe not found in page context");
             }
-        }""",
+
+            const target = context || document;
+            const res = await window.axe.run(target, options || {});
+            return res;
+        } catch (err) {
+            return { error: String(err) };
+        }
+    }""",
         {"options": options, "context": context_arg}
     )
     return result
