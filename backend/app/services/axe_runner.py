@@ -33,7 +33,6 @@ async def run_axe_on_page(page: Page, context: Dict = None) -> Dict[str, Any]:
                 return { error: String(err) };
             }
         }""",
-        options,
-        context_arg,
+        {"options": options, "context": context_arg}
     )
     return result

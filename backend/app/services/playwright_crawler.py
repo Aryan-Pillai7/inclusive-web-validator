@@ -17,7 +17,7 @@ async def fetch_page_snapshot(page, target_url: str, out_dir: str) -> Dict[str, 
     html = await page.content()
     screenshot_path = None 
     if SCREENSHOT: 
-        screenshot_path = os.join(out_dir, f"screenshot_{int(time.time()*1000)}.png")
+        screenshot_path = os.path.join(out_dir, f"screenshot_{int(time.time()*1000)}.png")
         await page.screenshot(path=screenshot_path, full_page=True) 
     return {
         "url" : target_url, 
@@ -33,7 +33,7 @@ def same_origin(base: str, other: str) -> bool:
 
 async def extract_links(page) -> Set[str]: 
     """Returns hrefs found on page (absolute)"""
-    anchors = page.eval_on_selector_all("a", "elements => elements.map(e => e.href)")
+    anchors = await page.eval_on_selector_all("a", "elements => elements.map(e => e.href)")
     return set([a for a in anchors if a])
 
 async def crawl(url: str, max_pages: int = MAX_PAGES, max_depth: int = MAX_DEPTH) -> List[Dict]: 
