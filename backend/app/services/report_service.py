@@ -1,10 +1,10 @@
-# report_service.py
+# backend/app/report_service.py
 import os
 import json
 import time
 from typing import Dict, Any, List
 from pathlib import Path
-from playwright.async_api import async_playwright, TimeoutError as PWTimeoutError
+from playwright.async_api import async_playwright
 
 from .config import REPORTS_DIR, PAGE_TIMEOUT, SCREENSHOT
 from .playwright_crawler import crawl
@@ -21,38 +21,49 @@ async def audit_single_page(browser, url: str, out_dir: str) -> Dict[str, Any]:
         await page.close()
         return {"url": url, "error": str(e)}
 
-    # run axe
+    # Run axe
     res = await run_axe_on_page(page)
-    # optionally capture fresh screenshot (if wanted per-axe run)
-    screenshot = None
+
+    # ----------------------
+    # ⭐ FIX: Generate public screenshot URL
+    # ----------------------
+    screenshot_url = None
     if SCREENSHOT:
-        screenshot = os.path.join(out_dir, f"screenshot_{int(time.time()*1000)}.png")
+        filename = f"screenshot_{int(time.time()*1000)}.png"
+        disk_path = os.path.join(out_dir, filename)
+        public_path = f"/static/{os.path.basename(out_dir)}/{filename}"
+
         try:
-            await page.screenshot(path=screenshot, full_page=True)
+            await page.screenshot(path=disk_path, full_page=True)
+            screenshot_url = public_path  # return URL instead of disk path
         except Exception:
-            screenshot = None
+            screenshot_url = None
+
     await page.close()
-    return {"url": url, "axe": res, "screenshot": screenshot}
+
+    return {"url": url, "axe": res, "screenshot": screenshot_url}
 
 
 async def run_full_scan(start_url: str, max_pages: int = 10, max_depth: int = 1) -> Dict[str, Any]:
-    """High-level entrypoint: crawl -> run axe on discovered pages -> save report JSON"""
+    """High-level entrypoint: crawl -> run axe on pages -> save report JSON"""
     ts = int(time.time())
     scan_dir = os.path.join(REPORTS_DIR, f"scan_{ts}")
     os.makedirs(scan_dir, exist_ok=True)
+
     report = {
         "start_url": start_url,
         "scanned_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "pages": []
     }
 
-    # First: get a list of page URLs via the crawler snapshots (uses Playwright itself)
+    # Crawl
     snapshots = await crawl(start_url, max_pages=max_pages, max_depth=max_depth)
     page_urls = [snap["url"] for snap in snapshots]
 
-    # Now run axe on each page (spawn a new browser context)
+    # Browser instance
     playwright = await async_playwright().start()
     browser = await playwright.chromium.launch(headless=True)
+
     results = []
     for u in page_urls:
         r = await audit_single_page(browser, u, scan_dir)
@@ -63,9 +74,10 @@ async def run_full_scan(start_url: str, max_pages: int = 10, max_depth: int = 1)
 
     report["pages"] = results
 
-    # Compute simple summary
+    # Summary
     total_violations = 0
     sev_count = {"critical": 0, "serious": 0, "moderate": 0, "minor": 0}
+
     for p in results:
         axe = p.get("axe")
         if not axe or "violations" not in axe:

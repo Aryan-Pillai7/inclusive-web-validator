@@ -1,5 +1,4 @@
 # backend/app/main.py
-# backend/app/main.py
 import sys
 import asyncio
 
@@ -8,11 +7,12 @@ if sys.platform == "win32":
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles   # ⭐ NEW — serve screenshots
 
-# Routers (to be created in later steps)
+# Routers
 from .routers import scan, reports
 
-# Database init (to be created in Step 2)
+# Database init
 from .database import init_db
 
 # -----------------------------
@@ -24,7 +24,11 @@ app = FastAPI(
     description="Backend API for automated accessibility compliance scanning."
 )
 
-# Enable CORS for frontend integration
+# ⭐ Serve screenshots and report assets
+# Anything inside reports_output/ becomes accessible at: /static/*
+app.mount("/static", StaticFiles(directory="reports_output"), name="static")
+
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -33,7 +37,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register routers (will exist after steps 5 and 6)
+# Register routers
 app.include_router(scan.router)
 app.include_router(reports.router)
 
@@ -42,7 +46,6 @@ app.include_router(reports.router)
 # -----------------------------
 @app.on_event("startup")
 async def on_startup():
-    """Initialize database connection at startup."""
     init_db()
 
 # -----------------------------
