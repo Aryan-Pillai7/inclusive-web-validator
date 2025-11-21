@@ -263,13 +263,9 @@
                             (violations.length === 0 ? `<div class="text-green-600 pl-2">No accessibility violations found.</div>` : violations.map(v => renderViolation(v)).join(''))
                         }
                         ${page.screenshot ? `
-                            <div class="mt-4 space-y-2">
-                                <p class="text-xs font-bold text-slate-500 uppercase">Screenshot</p>
-                                <img src="http://localhost:8000${page.screenshot}" 
-                                    class="rounded-lg border w-full max-w-md shadow">
-                                <code class="text-xs bg-slate-200 px-2 py-1 rounded text-slate-700 block">
-                                    ${page.screenshot}
-                                </code>
+                            <div class="mt-4">
+                                <p class="text-xs font-bold text-slate-500 uppercase mb-2">Screenshot Path</p>
+                                <code class="text-xs bg-slate-200 px-2 py-1 rounded text-slate-700">${page.screenshot}</code>
                             </div>` : ''
                         }
                     </div>
